@@ -243,7 +243,7 @@ export const deletePost = async (req, res) => {
         data: data,
       });
     }
-    return handleError({ res, msg: "Post not Exist" });
+    return handleError({ res, err_msg: "Post not Exist" });
   } catch (err) {
     console.log("err: ", err);
     return handleError({ res, err: err.message });
@@ -274,7 +274,7 @@ export const likePost = async (req, res) => {
         msg: "Post liked!!!",
       });
     }
-    return handleError({ res, msg: "Post not Exist" });
+    return handleError({ res, err_msg: "Post not Exist" });
   } catch (err) {
     return handleError({ res, err: err });
   }
@@ -287,15 +287,17 @@ export const unlikePost = async (req, res) => {
       _id: id,
     });
 
-    const match = isExist.likes.find((e) => e == req.userId);
+    const match = isExist?.likes.find((e) => e == req.userId);
+
     if (match) {
       await PostModel.findByIdAndUpdate(id, { $pull: { likes: req.userId } });
       return handleResponse({ res, msg: "Post unliked!!!" });
+    } else {
+      return handleError({
+        res,
+        err_msg: `Post is not liked by you`,
+      });
     }
-    return handleError({
-      res,
-      msg: `Post is not liked by you`,
-    });
   } catch (err) {
     return handleError({ res, err: err });
   }
@@ -303,6 +305,31 @@ export const unlikePost = async (req, res) => {
 
 export const commentPost = async (req, res) => {
   try {
+    const { id } = req.params;
+    const { comment } = req.body;
+    const isExist = await PostModel.findOne({ _id: id });
+    if (isExist) {
+      const data = await PostModel.findByIdAndUpdate(
+        id,
+        {
+          $push: {
+            comments: { comment: comment, commentBy: req.userId },
+          },
+        },
+        {
+          returnDocument: "after",
+        }
+      );
+
+      const newComment = data.comments[data.comments.length - 1];
+      return handleResponse({
+        res,
+        data: newComment._id,
+        msg: "Commented Successfully",
+      });
+    } else {
+      return handleError({ res, err_msg: "Post doesn't Exist" });
+    }
   } catch (err) {
     return handleError({ res, err: err });
   }
@@ -310,6 +337,28 @@ export const commentPost = async (req, res) => {
 
 export const getPost = async (req, res) => {
   try {
+    const { id } = req.params;
+    const isExist = await PostModel.findOne({
+      _id: id,
+    });
+    if (isExist) {
+      const data = await PostModel.findOne(
+        { _id: id },
+        {
+          _id: 1,
+          likes: { $size: "$likes" },
+          comments: { $size: "$comments" },
+          title: 1,
+          description: 1,
+        }
+      ).lean();
+      return handleResponse({
+        res,
+        data: data,
+        msg: "Post retrived Successfully",
+      });
+    }
+    return handleError({ res, err_msg: "Post not found" });
   } catch (err) {
     return handleError({ res, err: err });
   }
@@ -317,6 +366,11 @@ export const getPost = async (req, res) => {
 
 export const getAllPost = async (req, res) => {
   try {
+    const allPosts = await PostModel.find(
+      { createdBy: req.userId },
+      { _id: 1, title: 1, description: 1, createdAt: 1, likes: 1, comments: 1 }
+    );
+    return handleResponse({ res, data: allPosts, msg: "retrived all post" });
   } catch (err) {
     return handleError({ res, err: err });
   }
