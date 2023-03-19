@@ -18,7 +18,10 @@
   },
   "homepage": "https://github.com/satyamkhatrani/Reunion-BE-Assignment#readme",
   "devDependencies": {
-    "nodemon": "^2.0.21"
+    "nodemon": "^2.0.21",
+    "chai": "^4.3.7",
+    "chai-http": "^4.3.0",
+    "mocha":"^10.2.0"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
